@@ -4,6 +4,9 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -38,3 +41,14 @@ jobs:
         with:
           name: rapoarte-teste
           path: app/build/reports/tests/
+
+      # Publică APK-ul ca „Release" public, ca Obtainium să poată actualiza aplicația automat.
+      - name: Publică Release
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v0.1.0-${{ github.run_number }}" FrigiderulMeu.apk \
+            --title "Frigiderul Meu build ${{ github.run_number }}" \
+            --notes "${{ github.event.head_commit.message }}" \
+            --latest
