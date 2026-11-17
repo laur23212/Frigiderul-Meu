@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Doar fișierul temporar al camerei este partajat cu aplicația de cameră. -->
+    <cache-path name="camera" path="camera/" />
+</paths>
