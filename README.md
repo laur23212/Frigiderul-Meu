@@ -4,6 +4,7 @@
 ![Platformă](https://img.shields.io/badge/platform%C4%83-Android%208.0%2B-3DDC84)
 ![Versiune](https://img.shields.io/badge/versiune-0.1.0-blue)
 ![Offline](https://img.shields.io/badge/offline-100%25-success)
+![Licență](https://img.shields.io/badge/licen%C8%9B%C4%83-MIT-yellow)
 
 **Un calendar al frigiderului tău.** Faci o poză produsului, alegi data la care expiră, iar poza apare în calendar exact în ziua aceea. Dintr-o privire vezi ce trebuie consumat curând și ce s-a stricat deja.
 
@@ -96,6 +97,10 @@ Aplicația a fost dezvoltată cu ajutorul asistentului [Claude](https://claude.a
 ## Contribuții
 
 Proiectul este personal, dar sugestiile sunt binevenite. Ai găsit o greșeală sau ai o idee? Deschide un [Issue](https://github.com/laur23212/Frigiderul-Meu/issues) și descrie ce s-a întâmplat sau ce ți-ar plăcea să facă aplicația. Pentru modificări de cod, deschide întâi un Issue, apoi un Pull Request.
+
+## Licență
+
+Proiectul este open source, sub licența [MIT](LICENSE): poți folosi, copia, modifica și distribui codul liber, atât timp cât păstrezi mențiunea de copyright. Aplicația este oferită „ca atare”, fără garanții.
 
 ## Autor
 
