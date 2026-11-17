@@ -172,7 +172,7 @@ private fun MonthGrid(
     onDayClick: (LocalDate) -> Unit,
 ) {
     val cells = remember(month) { CalendarMonth.cells(month) }
-    val cellHeight = if (expanded) 132.dp else 80.dp
+    val cellHeight = if (expanded) 190.dp else 120.dp
     Column(
         Modifier
             .fillMaxSize()
@@ -205,8 +205,8 @@ private fun DayCell(
 ) {
     val state = Expiry.worstState(items, today)
     val shape = RoundedCornerShape(8.dp)
-    // Compact: până la 4 miniaturi (2×2). Extins: până la 2 miniaturi mari, una sub alta.
-    val maxThumbs = if (expanded) 2 else 4
+    // Miniaturi mari, una sub alta (aproape pătrate). Compact: până la 2. Extins: până la 3.
+    val maxThumbs = if (expanded) 3 else 2
     val hidden = items.size - maxThumbs
 
     Column(
@@ -230,19 +230,10 @@ private fun DayCell(
         Spacer(Modifier.height(2.dp))
         if (items.isNotEmpty()) {
             val shown = items.take(maxThumbs)
-            if (expanded) {
-                Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    shown.forEach { CalendarThumb(it, 14.dp, Modifier.fillMaxWidth().weight(1f)) }
-                }
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    shown.chunked(2).forEach { pair ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                            pair.forEach { CalendarThumb(it, 9.dp, Modifier.weight(1f).aspectRatio(1f)) }
-                            if (pair.size == 1) Spacer(Modifier.weight(1f))
-                        }
-                    }
-                }
+            Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                shown.forEach { CalendarThumb(it, if (expanded) 16.dp else 14.dp, Modifier.fillMaxWidth().weight(1f)) }
+                // Dacă sunt mai puține miniaturi decât locuri, rămân goale locurile libere, ca să nu se întindă.
+                repeat(maxThumbs - shown.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }

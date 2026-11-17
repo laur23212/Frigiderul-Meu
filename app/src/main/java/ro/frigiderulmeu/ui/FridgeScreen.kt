@@ -27,8 +27,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +45,7 @@ import ro.frigiderulmeu.image.ProductImage
 import java.time.LocalDate
 
 /** Inventarul, ca o galerie foto: grilă de ~3 coloane, adaptată lățimii ecranului. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FridgeScreen(vm: FridgeViewModel, onOpenItem: (Long) -> Unit, onConsume: (Item) -> Unit) {
     val allItems by vm.activeItems.collectAsStateWithLifecycle()
@@ -67,8 +68,9 @@ fun FridgeScreen(vm: FridgeViewModel, onOpenItem: (Long) -> Unit, onConsume: (It
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+        // Filtrele trec pe rândul următor când nu încap, ca să se vadă toate fără derulare laterală.
+        FlowRow(
+            Modifier.padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             FilterChip(selected = filter == null, onClick = { filter = null }, label = { Text("Toate (${allItems.size})") })

@@ -18,7 +18,7 @@ Aplicațiile de „food tracker” de pe Google Play sunt de obicei încărcate:
 
 ### Versiunea 0.1 (disponibilă)
 
-- **Calendar lunar** (săptămâna începe luni) cu miniaturile produselor direct în căsuțe: până la 4 în modul compact, 2 mai mari în modul extins, plus „+N” dacă sunt mai multe. Navigarea se face cu săgeți sau prin glisare. Atingerea unei zile deschide lista produselor din ziua aceea.
+- **Calendar lunar** (săptămâna începe luni) cu miniaturile produselor direct în căsuțe: până la 2 miniaturi mari în modul compact, 3 în modul extins, plus „+N” dacă sunt mai multe. Navigarea se face cu săgeți sau prin glisare. Atingerea unei zile deschide lista produselor din ziua aceea.
 - **Culori de expirare**, recalculate automat la schimbarea zilei:
   - 🟢 verde: expiră peste mai mult de 2 zile;
   - 🟠 portocaliu: expiră azi, mâine sau peste 2 zile;
