@@ -147,11 +147,26 @@ class OpenSplitTest {
         }
     }
 
-    @Test fun singlePieceIsJustMarkedOpened() {
+    @Test fun singlePieceFromFridgeAlsoExpiresInThreeDays() {
         val r = ItemActions.open(item(today.plusDays(10)), today)
         assertNull(r.split)
         assertTrue(r.updated.isOpened)
-        assertEquals(today.plusDays(10), r.updated.expiryDate)
+        assertEquals(today, r.updated.openedDate)
+        assertEquals(today.plusDays(3), r.updated.expiryDate)
+    }
+
+    @Test fun singleFrozenPieceKeepsItsDateWhenOpened() {
+        val r = ItemActions.open(item(today.plusDays(90)).copy(storage = StorageType.FREEZER), today)
+        assertTrue(r.updated.isOpened)
+        assertEquals(today.plusDays(90), r.updated.expiryDate)
+    }
+
+    @Test fun consumeOneKeepsTheRestThenRemovesTheLast() {
+        val pack = item(today).copy(pieces = 2)
+        val one = ItemActions.consumeOne(pack, today)
+        assertEquals(1, one.pieces)
+        assertEquals(ItemStatus.ACTIVE, one.status)
+        assertEquals(ItemStatus.CONSUMED, ItemActions.consumeOne(one, today).status)
     }
 
     @Test fun alreadyOpenedStaysUntouched() {

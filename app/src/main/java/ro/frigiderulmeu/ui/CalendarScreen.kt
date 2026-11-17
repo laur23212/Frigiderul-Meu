@@ -69,6 +69,7 @@ fun CalendarScreen(
     onOpenItem: (Long) -> Unit,
     onAddForDate: (LocalDate) -> Unit,
     onShowExpired: () -> Unit,
+    onConsume: (Item) -> Unit,
 ) {
     val today by vm.today.collectAsStateWithLifecycle()
     val byDate by vm.itemsByDate.collectAsStateWithLifecycle()
@@ -155,6 +156,7 @@ fun CalendarScreen(
                 items = byDate[day].orEmpty(),
                 today = today,
                 onOpenItem = { selectedEpochDay = null; onOpenItem(it) },
+                onConsume = onConsume,
                 onAdd = { selectedEpochDay = null; onAddForDate(day) }
             )
         }
@@ -277,6 +279,7 @@ private fun DaySheetContent(
     items: List<Item>,
     today: LocalDate,
     onOpenItem: (Long) -> Unit,
+    onConsume: (Item) -> Unit,
     onAdd: () -> Unit,
 ) {
     Column(
@@ -295,7 +298,7 @@ private fun DaySheetContent(
                 if (items.size == 1) "1 produs" else "${items.size} produse",
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            items.forEach { item -> ItemRow(item, today) { onOpenItem(item.id) } }
+            items.forEach { item -> ItemRow(item, today, onConsume = { onConsume(item) }) { onOpenItem(item.id) } }
         }
         OutlinedButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
             Text("Adaugă un produs care expiră în această zi")

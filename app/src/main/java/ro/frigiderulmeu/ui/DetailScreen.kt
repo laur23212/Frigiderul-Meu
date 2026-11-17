@@ -208,6 +208,13 @@ private fun DetailContent(
             }
             Switch(checked = item.isOpened, onCheckedChange = { vm.setOpened(item, it, onOpenedSplit) })
         }
+        if (!item.isOpened && item.pieces <= 1 && item.storage == StorageType.FRIDGE) {
+            Text(
+                "La deschidere, produsul expiră în maximum ${Expiry.days(ItemActions.OPENED_SHELF_DAYS)}.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
         Text(
             "Adăugat pe ${CalendarMonth.longDate(item.addedDate)}",
@@ -216,10 +223,21 @@ private fun DetailContent(
         )
 
         Spacer(Modifier.size(4.dp))
-        Button(
-            onClick = { vm.consume(item); onConsumed(item); onBack() },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Consumat / scos din frigider") }
+        if (item.pieces > 1) {
+            Button(
+                onClick = { vm.consumeOne(item); onConsumed(item) },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Consumat o bucată (rămân ${item.pieces - 1})") }
+            OutlinedButton(
+                onClick = { vm.consume(item); onConsumed(item); onBack() },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Consumat tot (${item.pieces} bucăți)") }
+        } else {
+            Button(
+                onClick = { vm.consume(item); onConsumed(item); onBack() },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Consumat / scos din frigider") }
+        }
         OutlinedButton(
             onClick = { confirmDelete = true },
             modifier = Modifier.fillMaxWidth(),

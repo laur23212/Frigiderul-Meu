@@ -26,6 +26,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -142,7 +146,7 @@ fun OpenedDot(size: Dp, modifier: Modifier = Modifier) {
 
 /** Rând de listă pentru un produs: miniatură, nume, starea expirării, eticheta „deschis”. */
 @Composable
-fun ItemRow(item: Item, today: LocalDate, onClick: () -> Unit) {
+fun ItemRow(item: Item, today: LocalDate, onConsume: (() -> Unit)? = null, onClick: () -> Unit) {
     val state = Expiry.stateOf(item.expiryDate, today)
     Row(
         Modifier
@@ -171,6 +175,26 @@ fun ItemRow(item: Item, today: LocalDate, onClick: () -> Unit) {
             StorageTag(item.storage)
             if (item.pieces > 1) PiecesTag(item.pieces)
         }
+        if (onConsume != null) {
+            Spacer(Modifier.width(8.dp))
+            ConsumeButton(item, onConsume)
+        }
+    }
+}
+
+/** Buton rotund „consumat” (bifă): scoate o bucată sau tot produsul, cu „Anulează” în mesajul de jos. */
+@Composable
+fun ConsumeButton(item: Item, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val label = if (item.pieces > 1) "Consumat o bucată din ${item.name}" else "Consumat: ${item.name}"
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary)
+            .semantics { contentDescription = label }
+    ) {
+        Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White)
     }
 }
 

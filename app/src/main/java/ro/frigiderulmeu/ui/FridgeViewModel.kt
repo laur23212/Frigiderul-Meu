@@ -171,6 +171,9 @@ class FridgeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun consume(item: Item) = update(ItemActions.markConsumed(item, Today.date.value))
 
+    /** O bucată consumată (sau tot produsul, dacă mai era una). */
+    fun consumeOne(item: Item) = update(ItemActions.consumeOne(item, Today.date.value))
+
     fun restore(item: Item) = update(ItemActions.restore(item))
 
     fun delete(item: Item) {

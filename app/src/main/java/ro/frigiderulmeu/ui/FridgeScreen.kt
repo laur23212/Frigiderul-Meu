@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -45,7 +46,7 @@ import java.time.LocalDate
 
 /** Inventarul, ca o galerie foto: grilă de ~3 coloane, adaptată lățimii ecranului. */
 @Composable
-fun FridgeScreen(vm: FridgeViewModel, onOpenItem: (Long) -> Unit) {
+fun FridgeScreen(vm: FridgeViewModel, onOpenItem: (Long) -> Unit, onConsume: (Item) -> Unit) {
     val allItems by vm.activeItems.collectAsStateWithLifecycle()
     val today by vm.today.collectAsStateWithLifecycle()
     val sortByAdded = vm.sortByAdded
@@ -99,7 +100,7 @@ fun FridgeScreen(vm: FridgeViewModel, onOpenItem: (Long) -> Unit) {
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(sorted, key = { it.id }) { item ->
-                    InventoryCard(item, today) { onOpenItem(item.id) }
+                    InventoryCard(item, today, onConsume = { onConsume(item) }) { onOpenItem(item.id) }
                 }
             }
         }
@@ -107,7 +108,7 @@ fun FridgeScreen(vm: FridgeViewModel, onOpenItem: (Long) -> Unit) {
 }
 
 @Composable
-private fun InventoryCard(item: Item, today: LocalDate, onClick: () -> Unit) {
+private fun InventoryCard(item: Item, today: LocalDate, onConsume: () -> Unit, onClick: () -> Unit) {
     val state = Expiry.stateOf(item.expiryDate, today)
     val shape = RoundedCornerShape(14.dp)
     Column(Modifier.clickable(onClick = onClick)) {
@@ -122,6 +123,7 @@ private fun InventoryCard(item: Item, today: LocalDate, onClick: () -> Unit) {
             if (item.isOpened) OpenedTag(Modifier.align(Alignment.TopStart).padding(7.dp))
             if (item.storage != StorageType.FRIDGE) StorageTag(item.storage, Modifier.align(Alignment.BottomStart).padding(7.dp))
             if (item.pieces > 1) PiecesTag(item.pieces, Modifier.align(Alignment.TopEnd).padding(7.dp))
+            ConsumeButton(item, onConsume, Modifier.align(Alignment.BottomEnd).padding(5.dp).size(34.dp))
         }
         Text(
             item.name,

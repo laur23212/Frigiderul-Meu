@@ -59,21 +59,26 @@ object ItemActions {
     data class OpenResult(val updated: Item, val split: Item? = null)
 
     /**
-     * Deschide un produs. Dacă intrarea are mai multe bucăți, bucata deschisă devine o intrare separată,
-     * cu data expirării peste [OPENED_SHELF_DAYS] zile (niciodată mai târziu decât data inițială),
-     * în afară de produsele de la congelator și de la loc uscat, care își păstrează data. Cu o singură bucată, doar se marchează deschis.
+     * Deschide un produs. Din frigider, data expirării devine azi + [OPENED_SHELF_DAYS] zile (niciodată
+     * mai târziu decât data inițială); la congelator și la loc uscat data rămâne neschimbată.
+     * Dacă intrarea are mai multe bucăți, doar bucata deschisă devine o intrare separată (id = 0, nesalvată);
+     * celelalte rămân nedeschise, cu data veche.
      */
     fun open(item: Item, today: LocalDate): OpenResult {
         if (item.isOpened) return OpenResult(item)
-        if (item.pieces <= 1) return OpenResult(markOpened(item, today))
         val newExpiry =
             if (item.storage != StorageType.FRIDGE) item.expiryDate else minOf(item.expiryDate, today.plusDays(OPENED_SHELF_DAYS))
+        if (item.pieces <= 1) return OpenResult(markOpened(item.copy(expiryDate = newExpiry), today))
         val opened = item.copy(id = 0, pieces = 1, isOpened = true, openedDate = today, expiryDate = newExpiry)
         return OpenResult(item.copy(pieces = item.pieces - 1), opened)
     }
 
     /** Anulează marcajul „deschis” (de ex. apăsat din greșeală). */
     fun markUnopened(item: Item): Item = item.copy(isOpened = false, openedDate = null)
+
+    /** Consumă o singură bucată dintr-o intrare cu mai multe; cu o bucată, scoate toată intrarea. */
+    fun consumeOne(item: Item, today: LocalDate): Item =
+        if (item.pieces > 1) item.copy(pieces = item.pieces - 1) else markConsumed(item, today)
 
     fun markConsumed(item: Item, today: LocalDate): Item =
         item.copy(status = ItemStatus.CONSUMED, consumedDate = today)

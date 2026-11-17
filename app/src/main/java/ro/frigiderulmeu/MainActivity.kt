@@ -33,6 +33,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import ro.frigiderulmeu.data.Item
 import ro.frigiderulmeu.domain.CalendarMonth
 import ro.frigiderulmeu.domain.Today
 import ro.frigiderulmeu.ui.AddScreen
@@ -76,6 +77,20 @@ private fun App(vm: FridgeViewModel = viewModel()) {
         while (true) {
             delay(Today.millisUntilMidnight())
             Today.refresh()
+        }
+    }
+
+    // Mesaj cu „Anulează” după ce un produs (sau o bucată) a fost consumat; anularea readuce starea de dinainte.
+    fun showConsumed(item: Item) {
+        scope.launch {
+            snackbar.currentSnackbarData?.dismiss()
+            val result = snackbar.showSnackbar(
+                message = if (item.pieces > 1) "O bucată din „${item.name}” a fost consumată (rămân ${item.pieces - 1})"
+                else "„${item.name}” a fost scos din frigider",
+                actionLabel = "Anulează",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) vm.restore(item)
         }
     }
 
@@ -125,16 +140,7 @@ private fun App(vm: FridgeViewModel = viewModel()) {
                             if (result == SnackbarResult.ActionPerformed) detailId = opened.id
                         }
                     },
-                    onConsumed = { item ->
-                        scope.launch {
-                            val result = snackbar.showSnackbar(
-                                message = "„${item.name}” a fost scos din frigider",
-                                actionLabel = "Anulează",
-                                duration = SnackbarDuration.Short
-                            )
-                            if (result == SnackbarResult.ActionPerformed) vm.restore(item)
-                        }
-                    }
+                    onConsumed = { item -> showConsumed(item) }
                 )
             } else {
                 when (tab) {
@@ -142,9 +148,10 @@ private fun App(vm: FridgeViewModel = viewModel()) {
                         vm = vm,
                         onOpenItem = { detailId = it },
                         onAddForDate = { addDateEpoch = it.toEpochDay(); tab = TAB_ADD },
-                        onShowExpired = { tab = TAB_FRIDGE }
+                        onShowExpired = { tab = TAB_FRIDGE },
+                        onConsume = { vm.consumeOne(it); showConsumed(it) }
                     )
-                    TAB_FRIDGE -> FridgeScreen(vm = vm, onOpenItem = { detailId = it })
+                    TAB_FRIDGE -> FridgeScreen(vm = vm, onOpenItem = { detailId = it }, onConsume = { vm.consumeOne(it); showConsumed(it) })
                     else -> AddScreen(
                         vm = vm,
                         initialDate = addDateEpoch?.let(LocalDate::ofEpochDay),
