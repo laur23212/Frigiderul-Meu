@@ -58,8 +58,8 @@ fun FridgeScreen(vm: FridgeViewModel, onOpenItem: (Long) -> Unit) {
             )
         }
         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = !sortByAdded, onClick = { vm.setSortByAdded(false) }, label = { Text("După expirare") })
-            FilterChip(selected = sortByAdded, onClick = { vm.setSortByAdded(true) }, label = { Text("Adăugate recent") })
+            FilterChip(selected = !sortByAdded, onClick = { vm.chooseSortByAdded(false) }, label = { Text("După expirare") })
+            FilterChip(selected = sortByAdded, onClick = { vm.chooseSortByAdded(true) }, label = { Text("Adăugate recent") })
         }
 
         if (items.isEmpty()) {

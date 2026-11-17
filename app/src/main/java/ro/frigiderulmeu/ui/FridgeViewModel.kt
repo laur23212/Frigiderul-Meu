@@ -62,7 +62,7 @@ class FridgeViewModel(app: Application) : AndroidViewModel(app) {
         prefs.edit().putBoolean(KEY_EXPANDED, calendarExpanded).apply()
     }
 
-    fun setSortByAdded(value: Boolean) {
+    fun chooseSortByAdded(value: Boolean) {
         sortByAdded = value
         prefs.edit().putBoolean(KEY_SORT_ADDED, value).apply()
     }
