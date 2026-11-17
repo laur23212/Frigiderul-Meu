@@ -9,6 +9,7 @@ import ro.frigiderulmeu.data.Item
 import ro.frigiderulmeu.data.ItemStatus
 import ro.frigiderulmeu.data.StorageType
 import ro.frigiderulmeu.image.ImageStore
+import ro.frigiderulmeu.ui.cropRect
 import java.time.LocalDate
 import java.time.YearMonth
 
