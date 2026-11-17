@@ -2,12 +2,14 @@ package ro.frigiderulmeu.ui
 
 import android.app.Application
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,6 +21,7 @@ import kotlinx.coroutines.withContext
 import ro.frigiderulmeu.data.AppDatabase
 import ro.frigiderulmeu.data.Item
 import ro.frigiderulmeu.data.ProductType
+import ro.frigiderulmeu.data.StorageType
 import ro.frigiderulmeu.domain.ItemActions
 import ro.frigiderulmeu.domain.Today
 import ro.frigiderulmeu.image.ImageStore
@@ -69,8 +72,12 @@ class FridgeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun observeItem(id: Long): Flow<Item?> = itemDao.observeById(id)
 
-    /** Redimensionează și comprimă fotografia; întoarce calea fișierului temporar. */
-    suspend fun processPhoto(uri: Uri): String? = images.processToPending(uri)?.absolutePath
+    /** Citește fotografia (redusă) pentru ecranul de încadrare în pătrat. */
+    suspend fun loadForCrop(uri: Uri): Bitmap? = images.loadForCrop(uri)
+
+    /** Salvează pătratul ales (max. 400 px, WebP); întoarce calea fișierului temporar. */
+    suspend fun saveCropped(source: Bitmap, left: Int, top: Int, size: Int): String? =
+        images.saveSquare(source, left, top, size)?.absolutePath
 
     /**
      * Salvează un exemplar nou. [onSaved] primește calea definitivă a fotografiei,
@@ -82,6 +89,8 @@ class FridgeViewModel(app: Application) : AndroidViewModel(app) {
         quantity: String?,
         opened: Boolean,
         photoPath: String?,
+        storage: StorageType = StorageType.FRIDGE,
+        pieces: Int = 1,
         barcode: String? = null,
         onSaved: (finalPhotoPath: String?) -> Unit = {},
     ) {
@@ -97,6 +106,8 @@ class FridgeViewModel(app: Application) : AndroidViewModel(app) {
                 quantity = quantity?.trim()?.ifEmpty { null },
                 isOpened = opened,
                 openedDate = if (opened) today else null,
+                storage = storage,
+                pieces = pieces.coerceAtLeast(1),
             )
             itemDao.insert(item)
             if (barcode != null) rememberProductType(barcode, item.name, finalPath)
@@ -122,10 +133,33 @@ class FridgeViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { itemDao.update(item) }
     }
 
-    fun setOpened(item: Item, opened: Boolean) {
-        val updated = if (opened) ItemActions.markOpened(item, Today.date.value) else ItemActions.markUnopened(item)
-        update(updated)
+    /**
+     * Deschis / nedeschis. Când un produs cu mai multe bucăți este deschis, bucata deschisă devine
+     * o intrare separată; [onSplit] primește intrarea nouă (cu id-ul ei).
+     */
+    fun setOpened(item: Item, opened: Boolean, onSplit: (Item) -> Unit = {}) {
+        if (!opened) {
+            update(ItemActions.markUnopened(item))
+            return
+        }
+        viewModelScope.launch {
+            val result = ItemActions.open(item, Today.date.value)
+            val split = result.split
+            if (split == null) {
+                itemDao.update(result.updated)
+            } else {
+                val newId = db.withTransaction {
+                    itemDao.update(result.updated)
+                    itemDao.insert(split)
+                }
+                onSplit(split.copy(id = newId))
+            }
+        }
     }
+
+    fun setPieces(item: Item, pieces: Int) = update(item.copy(pieces = pieces.coerceAtLeast(1)))
+
+    fun setStorage(item: Item, storage: StorageType) = update(item.copy(storage = storage))
 
     fun changePhoto(item: Item, pendingPath: String) {
         viewModelScope.launch {

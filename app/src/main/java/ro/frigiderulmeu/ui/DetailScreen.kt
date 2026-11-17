@@ -3,6 +3,8 @@ package ro.frigiderulmeu.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +22,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,8 +47,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ro.frigiderulmeu.R
 import ro.frigiderulmeu.data.Item
+import ro.frigiderulmeu.data.StorageType
 import ro.frigiderulmeu.domain.CalendarMonth
 import ro.frigiderulmeu.domain.Expiry
+import ro.frigiderulmeu.domain.ItemActions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +59,7 @@ fun DetailScreen(
     itemId: Long,
     onBack: () -> Unit,
     onConsumed: (Item) -> Unit,
+    onOpenedSplit: (Item) -> Unit,
 ) {
     BackHandler(onBack = onBack)
     val itemFlow = remember(itemId) { vm.observeItem(itemId) }
@@ -70,11 +76,12 @@ fun DetailScreen(
         )
         val current = item
         if (current != null) {
-            DetailContent(vm, current, today, onBack, onConsumed)
+            DetailContent(vm, current, today, onBack, onConsumed, onOpenedSplit)
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DetailContent(
     vm: FridgeViewModel,
@@ -82,6 +89,7 @@ private fun DetailContent(
     today: java.time.LocalDate,
     onBack: () -> Unit,
     onConsumed: (Item) -> Unit,
+    onOpenedSplit: (Item) -> Unit,
 ) {
     var name by rememberSaveable(item.id) { mutableStateOf(item.name) }
     var quantity by rememberSaveable(item.id) { mutableStateOf(item.quantity.orEmpty()) }
@@ -128,7 +136,7 @@ private fun DetailContent(
         OutlinedTextField(
             quantity, { quantity = it },
             label = { Text("Cantitate (opțional)") },
-            placeholder = { Text("ex. 1 L, 2 buc.") },
+            placeholder = { Text("ex. 1 L, 500 g") },
             singleLine = true, modifier = Modifier.fillMaxWidth()
         )
         if (changed) {
@@ -150,8 +158,42 @@ private fun DetailContent(
             }
         }
 
-        // Deschis / nedeschis
+        // Număr de bucăți
         Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Număr de bucăți", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+            PiecesStepper(item.pieces) { vm.setPieces(item, it) }
+        }
+
+        // Loc de păstrare
+        Column {
+            Text("Unde se păstrează", style = MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StorageType.values().forEach { type ->
+                    FilterChip(
+                        selected = item.storage == type,
+                        onClick = { vm.setStorage(item, type) },
+                        label = { Text(storageLabel(type)) }
+                    )
+                }
+            }
+        }
+
+        // Deschis / nedeschis
+        if (!item.isOpened && item.pieces > 1) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                OutlinedButton(onClick = { vm.setOpened(item, true, onOpenedSplit) }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Deschide o bucată")
+                }
+                Text(
+                    if (item.storage == StorageType.FRIDGE)
+                        "Bucata deschisă devine o intrare separată, care expiră în maximum ${Expiry.days(ItemActions.OPENED_SHELF_DAYS)}."
+                    else
+                        "Bucata deschisă devine o intrare separată, cu aceeași dată de expirare.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Marchează ca deschis", style = MaterialTheme.typography.titleMedium)
                 val opened = item.openedDate
@@ -164,7 +206,7 @@ private fun DetailContent(
                     color = if (item.isOpened) StatusColors.opened else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Switch(checked = item.isOpened, onCheckedChange = { vm.setOpened(item, it) })
+            Switch(checked = item.isOpened, onCheckedChange = { vm.setOpened(item, it, onOpenedSplit) })
         }
 
         Text(

@@ -47,6 +47,33 @@ class ImageStore(private val context: Context) {
         }
     }
 
+    /** Fotografia redusă la max. 1200 px, pentru ecranul de încadrare în pătrat. */
+    suspend fun loadForCrop(source: Uri): Bitmap? = withContext(Dispatchers.IO) {
+        runCatching { decodeScaled(source, CROP_SOURCE_SIDE) }.getOrNull().also {
+            File(cameraDir, "capture.jpg").delete()
+        }
+    }
+
+    /** Decupează pătratul ales din [source], îl reduce la max. 400 px și îl salvează ca WebP temporar. */
+    suspend fun saveSquare(source: Bitmap, left: Int, top: Int, size: Int): File? = withContext(Dispatchers.IO) {
+        runCatching {
+            val side = size.coerceIn(1, minOf(source.width, source.height))
+            val x = left.coerceIn(0, source.width - side)
+            val y = top.coerceIn(0, source.height - side)
+            val square = Bitmap.createBitmap(source, x, y, side, side)
+            val finalSide = minOf(side, MAX_SIDE)
+            val scaled = if (finalSide < side) Bitmap.createScaledBitmap(square, finalSide, finalSide, true) else square
+            val out = File(pendingDir, "${UUID.randomUUID()}.webp")
+            FileOutputStream(out).use { stream ->
+                @Suppress("DEPRECATION")
+                val format = if (Build.VERSION.SDK_INT >= 30) Bitmap.CompressFormat.WEBP_LOSSY
+                else Bitmap.CompressFormat.WEBP
+                scaled.compress(format, QUALITY, stream)
+            }
+            out
+        }.getOrNull()
+    }
+
     /** Mută o imagine temporară în dosarul permanent și întoarce calea finală. */
     fun commit(path: String?): String? {
         if (path == null) return null
@@ -99,6 +126,7 @@ class ImageStore(private val context: Context) {
     companion object {
         const val MAX_SIDE = 400
         const val QUALITY = 78
+        const val CROP_SOURCE_SIDE = 1200
 
         @Volatile private var instance: ImageStore? = null
         fun get(context: Context): ImageStore =

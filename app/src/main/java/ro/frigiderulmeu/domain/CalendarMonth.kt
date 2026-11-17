@@ -30,11 +30,10 @@ object CalendarMonth {
     fun title(month: YearMonth): String =
         MONTHS[month.monthValue - 1].replaceFirstChar { it.uppercase() } + " " + month.year
 
-    /** De exemplu „21 nov.” sau „21 nov. 2027” dacă anul diferă de cel curent. */
-    fun shortDate(date: LocalDate, today: LocalDate): String {
-        val base = "${date.dayOfMonth} ${MONTHS_SHORT[date.monthValue - 1]}"
-        return if (date.year == today.year) base else "$base ${date.year}"
-    }
+    /** Zi, lună, an: de exemplu „21 nov. 2026”. Anul apare mereu. */
+    @Suppress("UNUSED_PARAMETER")
+    fun shortDate(date: LocalDate, today: LocalDate): String =
+        "${date.dayOfMonth} ${MONTHS_SHORT[date.monthValue - 1]} ${date.year}"
 
     /** De exemplu „21 noiembrie 2026”. */
     fun longDate(date: LocalDate): String = "${date.dayOfMonth} ${MONTHS[date.monthValue - 1]} ${date.year}"

@@ -2,6 +2,7 @@ package ro.frigiderulmeu.domain
 
 import ro.frigiderulmeu.data.Item
 import ro.frigiderulmeu.data.ItemStatus
+import ro.frigiderulmeu.data.StorageType
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -47,6 +48,29 @@ object Expiry {
 object ItemActions {
     fun markOpened(item: Item, today: LocalDate): Item =
         if (item.isOpened) item else item.copy(isOpened = true, openedDate = today)
+
+    /** Cât mai ține un produs după ce a fost deschis dintr-un pachet cu mai multe bucăți. */
+    const val OPENED_SHELF_DAYS = 3L
+
+    /**
+     * Rezultatul deschiderii: [updated] este intrarea inițială (modificată), iar [split] este intrarea
+     * nouă pentru bucata deschisă, dacă a fost nevoie de ea (id = 0, încă nesalvată).
+     */
+    data class OpenResult(val updated: Item, val split: Item? = null)
+
+    /**
+     * Deschide un produs. Dacă intrarea are mai multe bucăți, bucata deschisă devine o intrare separată,
+     * cu data expirării peste [OPENED_SHELF_DAYS] zile (niciodată mai târziu decât data inițială),
+     * în afară de produsele de la congelator și de la loc uscat, care își păstrează data. Cu o singură bucată, doar se marchează deschis.
+     */
+    fun open(item: Item, today: LocalDate): OpenResult {
+        if (item.isOpened) return OpenResult(item)
+        if (item.pieces <= 1) return OpenResult(markOpened(item, today))
+        val newExpiry =
+            if (item.storage != StorageType.FRIDGE) item.expiryDate else minOf(item.expiryDate, today.plusDays(OPENED_SHELF_DAYS))
+        val opened = item.copy(id = 0, pieces = 1, isOpened = true, openedDate = today, expiryDate = newExpiry)
+        return OpenResult(item.copy(pieces = item.pieces - 1), opened)
+    }
 
     /** Anulează marcajul „deschis” (de ex. apăsat din greșeală). */
     fun markUnopened(item: Item): Item = item.copy(isOpened = false, openedDate = null)

@@ -17,7 +17,7 @@ android {
         targetSdk = 35
         // Crește automat la fiecare build din GitHub, ca Android să accepte actualizarea peste versiunea veche.
         versionCode = (System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1)
-        versionName = "0.1.0"
+        versionName = "0.2.0"
     }
 
     // Cheie de test fixă: fiecare APK nou se instalează PESTE cel vechi, fără să pierzi datele.

@@ -7,6 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import ro.frigiderulmeu.data.Item
 import ro.frigiderulmeu.data.ItemStatus
+import ro.frigiderulmeu.data.StorageType
 import ro.frigiderulmeu.image.ImageStore
 import java.time.LocalDate
 import java.time.YearMonth
@@ -114,6 +115,71 @@ class ItemActionsTest {
     }
 }
 
+class OpenSplitTest {
+    private val today = LocalDate.of(2026, 11, 17)
+
+    @Test fun openingOneOfSeveralCreatesSeparateEntryExpiringInThreeDays() {
+        val pack = item(today.plusDays(10)).copy(id = 5, pieces = 3)
+        val r = ItemActions.open(pack, today)
+        assertEquals(2, r.updated.pieces)
+        assertFalse(r.updated.isOpened)
+        assertEquals(pack.expiryDate, r.updated.expiryDate)
+        val opened = r.split!!
+        assertEquals(0L, opened.id)
+        assertEquals(1, opened.pieces)
+        assertTrue(opened.isOpened)
+        assertEquals(today, opened.openedDate)
+        assertEquals(today.plusDays(3), opened.expiryDate)
+    }
+
+    @Test fun openedPieceNeverLivesLongerThanTheOriginalDate() {
+        val pack = item(today.plusDays(1)).copy(pieces = 2)
+        assertEquals(today.plusDays(1), ItemActions.open(pack, today).split!!.expiryDate)
+    }
+
+    @Test fun freezerAndPantryKeepTheirDate() {
+        listOf(StorageType.FREEZER, StorageType.PANTRY).forEach { type ->
+            val pack = item(today.plusDays(90)).copy(pieces = 2, storage = type)
+            val opened = ItemActions.open(pack, today).split!!
+            assertEquals(today.plusDays(90), opened.expiryDate)
+            assertEquals(type, opened.storage)
+            assertTrue(opened.isOpened)
+        }
+    }
+
+    @Test fun singlePieceIsJustMarkedOpened() {
+        val r = ItemActions.open(item(today.plusDays(10)), today)
+        assertNull(r.split)
+        assertTrue(r.updated.isOpened)
+        assertEquals(today.plusDays(10), r.updated.expiryDate)
+    }
+
+    @Test fun alreadyOpenedStaysUntouched() {
+        val opened = ItemActions.markOpened(item(today).copy(pieces = 2), today)
+        val r = ItemActions.open(opened, today)
+        assertNull(r.split)
+        assertEquals(opened, r.updated)
+    }
+}
+
+class CropRectTest {
+    @Test fun noZoomNoMoveTakesCenteredShortSideSquare() {
+        assertEquals(Triple(100, 0, 600), cropRect(800, 600, 300f, 1f, 0f, 0f))
+    }
+
+    @Test fun zoomTwoHalvesTheSquareAndMovingShiftsIt() {
+        // zoom 2 -> latura 300; deplasând poza spre dreapta cu 150 px de ecran, se vede mai mult din stânga.
+        assertEquals(Triple(250, 150, 300), cropRect(800, 600, 300f, 2f, 0f, 0f))
+        assertEquals(Triple(100, 150, 300), cropRect(800, 600, 300f, 2f, 150f, 0f))
+    }
+
+    @Test fun neverLeavesThePhoto() {
+        val r = cropRect(800, 600, 300f, 2f, 99999f, -99999f)
+        assertEquals(0, r.first)
+        assertEquals(300, r.second)
+    }
+}
+
 class CalendarMonthTest {
     @Test fun weekStartsOnMonday() {
         // 1 noiembrie 2026 este duminică -> 6 căsuțe goale înainte.
@@ -143,7 +209,7 @@ class CalendarMonthTest {
 
     @Test fun shortDates() {
         val today = LocalDate.of(2026, 11, 17)
-        assertEquals("21 nov.", CalendarMonth.shortDate(LocalDate.of(2026, 11, 21), today))
+        assertEquals("21 nov. 2026", CalendarMonth.shortDate(LocalDate.of(2026, 11, 21), today))
         assertEquals("3 ian. 2027", CalendarMonth.shortDate(LocalDate.of(2027, 1, 3), today))
     }
 

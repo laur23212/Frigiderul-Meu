@@ -1,6 +1,7 @@
 package ro.frigiderulmeu.ui
 
 import android.content.ActivityNotFoundException
+import android.graphics.Bitmap
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -26,6 +27,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -50,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.launch
 import ro.frigiderulmeu.data.Item
+import ro.frigiderulmeu.data.StorageType
 import ro.frigiderulmeu.domain.CalendarMonth
 import ro.frigiderulmeu.domain.Expiry
 import ro.frigiderulmeu.image.ProductImage
@@ -70,6 +73,50 @@ fun OpenedTag(modifier: Modifier = Modifier) {
             .clip(RoundedCornerShape(6.dp))
             .background(StatusColors.opened)
             .padding(horizontal = 6.dp, vertical = 2.dp)
+    )
+}
+
+/** Eticheta locului de păstrare („CONGELAT” / „LOC USCAT”); pentru frigider nu se afișează nimic. */
+@Composable
+fun StorageTag(storage: StorageType, modifier: Modifier = Modifier) {
+    val (label, color) = when (storage) {
+        StorageType.FREEZER -> "CONGELAT" to StatusColors.frozen
+        StorageType.PANTRY -> "LOC USCAT" to StatusColors.pantry
+        StorageType.FRIDGE -> return
+    }
+    Text(
+        label,
+        color = Color.White,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.5.sp,
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(color)
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    )
+}
+
+/** Numele locului de păstrare, pentru butoane și filtre. */
+fun storageLabel(storage: StorageType): String = when (storage) {
+    StorageType.FRIDGE -> "Frigider"
+    StorageType.FREEZER -> "Congelator"
+    StorageType.PANTRY -> "Loc uscat"
+}
+
+/** Eticheta „×3” pentru intrările cu mai multe bucăți. */
+@Composable
+fun PiecesTag(count: Int, modifier: Modifier = Modifier) {
+    Text(
+        "×$count",
+        color = MaterialTheme.colorScheme.onSurface,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(Color.White.copy(alpha = 0.9f))
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .semantics { contentDescription = "$count bucăți" }
     )
 }
 
@@ -119,7 +166,11 @@ fun ItemRow(item: Item, today: LocalDate, onClick: () -> Unit) {
             Text(Expiry.label(item.expiryDate, today), color = StatusColors.text(state), fontSize = 13.sp, fontWeight = FontWeight.Medium)
             item.quantity?.let { Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-        if (item.isOpened) OpenedTag()
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (item.isOpened) OpenedTag()
+            StorageTag(item.storage)
+            if (item.pieces > 1) PiecesTag(item.pieces)
+        }
     }
 }
 
@@ -142,7 +193,20 @@ fun DatePickerPopup(initial: LocalDate, onDismiss: () -> Unit, onPicked: (LocalD
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Renunță") } }
     ) {
-        DatePicker(state = state)
+        DatePicker(
+            state = state,
+            // Antetul arată mereu „zi lună an”, indiferent de limba telefonului.
+            title = { Text("Alege data", modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp)) },
+            headline = {
+                val picked = state.selectedDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }
+                Text(
+                    picked?.let(CalendarMonth::longDate) ?: "Alege data",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp)
+                )
+            },
+            showModeToggle = false
+        )
     }
 }
 
@@ -182,15 +246,33 @@ fun rememberPhotoLaunchers(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var cameraUri by rememberSaveable { mutableStateOf<String?>(null) }
+    var cropSource by remember { mutableStateOf<Bitmap?>(null) }
 
     fun handle(uri: Uri) {
         scope.launch {
             onBusy(true)
-            val path = vm.processPhoto(uri)
+            val bitmap = vm.loadForCrop(uri)
             onBusy(false)
-            if (path != null) onPhoto(path)
+            if (bitmap != null) cropSource = bitmap
             else Toast.makeText(context, "Fotografia nu a putut fi citită", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    cropSource?.let { source ->
+        CropDialog(
+            source,
+            onCancel = { cropSource = null },
+            onDone = { left, top, size ->
+                cropSource = null
+                scope.launch {
+                    onBusy(true)
+                    val path = vm.saveCropped(source, left, top, size)
+                    onBusy(false)
+                    if (path != null) onPhoto(path)
+                    else Toast.makeText(context, "Fotografia nu a putut fi salvată", Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
     }
 
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
@@ -239,3 +321,13 @@ fun shortDate(date: LocalDate, today: LocalDate) = CalendarMonth.shortDate(date,
 
 @Composable
 fun SectionSpacer() = Spacer(Modifier.height(16.dp))
+
+/** Butoane „−  3  +” pentru numărul de bucăți (minimum 1). */
+@Composable
+fun PiecesStepper(value: Int, onChange: (Int) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedButton(onClick = { onChange((value - 1).coerceAtLeast(1)) }, enabled = value > 1) { Text("−") }
+        Text("$value", modifier = Modifier.padding(horizontal = 14.dp), style = MaterialTheme.typography.titleMedium)
+        OutlinedButton(onClick = { onChange((value + 1).coerceAtMost(99)) }, enabled = value < 99) { Text("+") }
+    }
+}

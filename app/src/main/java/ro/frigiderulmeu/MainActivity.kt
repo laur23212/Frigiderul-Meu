@@ -115,6 +115,16 @@ private fun App(vm: FridgeViewModel = viewModel()) {
                     vm = vm,
                     itemId = openId,
                     onBack = { detailId = null },
+                    onOpenedSplit = { opened ->
+                        scope.launch {
+                            val result = snackbar.showSnackbar(
+                                message = "Bucata deschisă e acum o intrare separată: expiră ${CalendarMonth.shortDate(opened.expiryDate, Today.date.value)}",
+                                actionLabel = "Vezi",
+                                duration = SnackbarDuration.Long
+                            )
+                            if (result == SnackbarResult.ActionPerformed) detailId = opened.id
+                        }
+                    },
                     onConsumed = { item ->
                         scope.launch {
                             val result = snackbar.showSnackbar(

@@ -8,6 +8,9 @@ import java.time.LocalDate
 
 enum class ItemStatus { ACTIVE, CONSUMED }
 
+/** Unde se păstrează produsul. Congelatul și locul uscat (dulciuri etc.) au aceleași reguli. */
+enum class StorageType { FRIDGE, FREEZER, PANTRY }
+
 /**
  * Un exemplar concret din frigider: are propria dată de expirare și propria stare de deschidere.
  * Numele și fotografia sunt copiate în exemplar, astfel încât editarea unui exemplar nu le schimbă pe celelalte.
@@ -30,6 +33,10 @@ data class Item(
     val openedDate: LocalDate? = null,
     val status: ItemStatus = ItemStatus.ACTIVE,
     val consumedDate: LocalDate? = null,
+    /** Frigider / Congelator / Loc uscat. Doar produsele din frigider își scurtează data la deschidere. */
+    @ColumnInfo(defaultValue = "'FRIDGE'") val storage: StorageType = StorageType.FRIDGE,
+    /** Câte bucăți identice (cu aceeași dată) are această intrare. Deschiderea desprinde o bucată. */
+    @ColumnInfo(defaultValue = "1") val pieces: Int = 1,
     /** Pregătit pentru o funcție viitoare „expiră la X zile după deschidere”. Nu este folosit automat. */
     @ColumnInfo(defaultValue = "NULL") val daysValidAfterOpening: Int? = null,
 )

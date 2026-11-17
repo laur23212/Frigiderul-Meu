@@ -1,5 +1,6 @@
 package ro.frigiderulmeu.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +39,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ro.frigiderulmeu.R
+import ro.frigiderulmeu.data.StorageType
 import ro.frigiderulmeu.domain.CalendarMonth
 import ro.frigiderulmeu.domain.Expiry
 import java.time.LocalDate
@@ -57,6 +60,8 @@ fun AddScreen(
     var expiryEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
     var quantity by rememberSaveable { mutableStateOf("") }
     var opened by rememberSaveable { mutableStateOf(false) }
+    var storage by rememberSaveable { mutableStateOf(StorageType.FRIDGE) }
+    var pieces by rememberSaveable { mutableStateOf(1) }
     var photoPath by rememberSaveable { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -71,7 +76,7 @@ fun AddScreen(
     fun save(keepForAnother: Boolean) {
         val date = expiry ?: return
         val savedName = name.trim()
-        vm.addItem(savedName, date, quantity, opened, photoPath) { finalPath ->
+        vm.addItem(savedName, date, quantity, opened, photoPath, storage = storage, pieces = pieces) { finalPath ->
             if (keepForAnother) {
                 // Același produs, altă dată de expirare: păstrăm numele, poza și cantitatea.
                 photoPath = finalPath
@@ -79,6 +84,7 @@ fun AddScreen(
                 opened = false
             } else {
                 name = ""; quantity = ""; opened = false; photoPath = null; expiryEpochDay = null
+                storage = StorageType.FRIDGE; pieces = 1
             }
             onSaved(savedName, date)
         }
@@ -136,10 +142,22 @@ fun AddScreen(
         OutlinedTextField(
             quantity, { quantity = it },
             label = { Text("Cantitate (opțional)") },
-            placeholder = { Text("ex. 1 L, 2 buc.") },
+            placeholder = { Text("ex. 1 L, 500 g") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Număr de bucăți", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            PiecesStepper(pieces) { pieces = it }
+        }
+
+        StorageCheckbox("Produs congelat", storage == StorageType.FREEZER) {
+            storage = if (it) StorageType.FREEZER else StorageType.FRIDGE
+        }
+        StorageCheckbox("Dulciuri / loc uscat (nu se ține în frigider)", storage == StorageType.PANTRY) {
+            storage = if (it) StorageType.PANTRY else StorageType.FRIDGE
+        }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Este deja deschis", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
@@ -166,5 +184,17 @@ fun AddScreen(
         DatePickerPopup(expiry ?: today, onDismiss = { showDatePicker = false }) {
             expiryEpochDay = it.toEpochDay()
         }
+    }
+}
+
+/** Bifă pe tot rândul, ca să se poată apăsa ușor. */
+@Composable
+private fun StorageCheckbox(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable { onChange(!checked) },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(checked = checked, onCheckedChange = onChange)
+        Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }

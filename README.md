@@ -29,6 +29,13 @@ Aplicațiile de „food tracker” de pe Google Play sunt de obicei încărcate:
 - **Adăugare rapidă**: fotografie cu camera sau din galerie, nume, dată (cu scurtături „Mâine”, „+3”, „+7”…), cantitate opțională. Butonul „Salvează și adaugă încă unul la fel” e pentru același produs cu altă dată de expirare.
 - **Fotografii mici**: fiecare poză e redusă la max. 400 px, salvată ca WebP fără metadate în spațiul privat al aplicației. Originalul de la cameră se șterge imediat. APK-ul are în jur de 1,3 MB.
 
+### Versiunea 0.2 (în lucru)
+
+- **Loc de păstrare**: Frigider, Congelator sau Loc uscat (dulciuri etc.), prin bife la adăugare. Pagina „Frigiderul meu” arată implicit toate produsele, cu filtre pentru fiecare categorie.
+- **Bucăți multiple**: „Deschide o bucată” desparte bucata deschisă într-o intrare separată, care expiră peste 3 zile (sau mai devreme, dacă data inițială e mai aproape). La Congelator și Loc uscat data rămâne la fel.
+- **Poza în pătrat**: după cameră sau galerie, poza se încadrează într-un pătrat (mutare cu degetul, mărire prin ciupire), exact cum apare în aplicație.
+- **Date în format zi, lună, an**, cu anul afișat peste tot.
+
 ### Ce urmează (etapa 2)
 
 - [ ] Scanare cod de bare, offline (structura bazei de date este deja pregătită: tabelul `product_types`).

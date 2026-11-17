@@ -12,6 +12,8 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import androidx.room.Update
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
@@ -67,7 +69,15 @@ interface ProductTypeDao {
     suspend fun insertOrReplace(type: ProductType)
 }
 
-@Database(entities = [Item::class, ProductType::class], version = 1, exportSchema = true)
+/** Versiunea 2: locul de păstrare (frigider / congelator / loc uscat) și numărul de bucăți. Datele existente rămân neschimbate. */
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE items ADD COLUMN storage TEXT NOT NULL DEFAULT 'FRIDGE'")
+        db.execSQL("ALTER TABLE items ADD COLUMN pieces INTEGER NOT NULL DEFAULT 1")
+    }
+}
+
+@Database(entities = [Item::class, ProductType::class], version = 2, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun itemDao(): ItemDao
@@ -82,7 +92,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "frigiderul_meu.db"
-                ).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
             }
     }
 }

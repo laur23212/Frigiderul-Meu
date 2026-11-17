@@ -28,6 +28,8 @@ fun FrigiderTheme(content: @Composable () -> Unit) {
 /** Culorile stărilor de expirare și ale indicatorului „deschis”. */
 object StatusColors {
     val opened = Color(0xFF2F6FD6)
+    val frozen = Color(0xFF3A8DA8)
+    val pantry = Color(0xFF9A6B2F)
     private val neutralBg = Color(0xFFF6F7F6)
 
     fun background(state: ExpiryState?): Color = when (state) {
